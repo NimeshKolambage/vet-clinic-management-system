@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>View Appointments</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --pet-pink: #f84b6d;
+            --pet-bg: #fff0f5;
+            --input-border: #ccc;
+            --transition: 0.3s;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color:#f2f2f2;
+            margin: 0;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header {
+            padding: 15px 30px;
+            background: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            z-index: 10;
+            position: relative;
+        }
+
+
+        .back-icon {
+
+            position: absolute;
+            left: 20px;
+            top: 30%;
+            font-size: 25px;
+            color: var(--pet-pink);
+            font-weight: 600;
+            cursor: pointer;
+            display: inline-block;
+            transition: var(--transition);
+            transform: rotate(180deg);
+        }
+
+        .back-icon:hover {
+
+            transform:translateX(-5px);
+            color: #d81b60;
+        }
+
+        h2 {
+            margin: 0;
+            color: var(--pet-pink);
+            font-size: 24px;
+            text-align: center;
+        }
+
+        h2 { margin: 0; color: var(--pet-pink); font-size: 22px; }
+
+        /* Main Layout - Flexbox for Side by Side */
+        .main-wrapper {
+            display: flex;
+            flex: 1;
+            overflow: hidden; /* Prevent body scroll */
+            padding: 20px;
+            gap: 20px;
+        }
+
+        /* Left Side: List */
+        .list-section {
+            flex: 1; /* Takes 40% roughly */
+            max-width: 400px;
+            background: white;
+            border-radius: 15px;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            overflow: hidden;
+        }
+
+        .list-header {
+            padding: 15px;
+            background: var(--pet-pink);
+            color: white;
+            font-weight: 600;
+        }
+
+        #recordsList {
+            overflow-y: auto;
+            flex: 1;
+            padding: 15px;
+        }
+
+        /* Right Side: Details */
+        .details-section {
+            flex: 2; /* Takes 60% roughly */
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+
+        /* Card Styles */
+        .record-card {
+            background: #fff;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 12px;
+            border: 1px solid #eee;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .record-card:hover {
+            border-color: var(--pet-pink);
+            background: #fffafa;
+        }
+
+        .record-card.active {
+            border-left: 5px solid var(--pet-pink);
+            background: var(--pet-bg);
+        }
+
+        .record-title { font-weight: 600; color: #333; margin-bottom: 5px; }
+        .record-sub { color: #777; font-size: 13px; }
+
+        /* Details Content */
+        #detailsCard {
+            padding: 30px;
+            height: 100%;
+            display: none; /* Initially hidden */
+        }
+
+        .placeholder-text {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            color: #aaa;
+            flex-direction: column;
+        }
+
+        .placeholder-text i { font-size: 50px; margin-bottom: 10px; }
+
+        .detail-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .detail-item {
+            padding-bottom: 10px;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .detail-label {
+            display: block;
+            font-size: 12px;
+            color: #888;
+            text-transform: uppercase;
+            margin-bottom: 4px;
+        }
+
+        .detail-value {
+            font-weight: 600;
+            color: #333;
+            font-size: 16px;
+        }
+
+        .highlight-value { color: var(--pet-pink); }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .main-wrapper { flex-direction: column; overflow: auto; }
+            .list-section { max-width: 100%; max-height: 400px; }
+            .detail-grid { grid-template-columns: 1fr; }
+        }
+
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <div class="back-icon" onclick="history.back()">
+        &#8592;
+    </div>
+
+    <h2>🐾 Appointment Manager</h2>
+</div>
+
+<div class="main-wrapper">
+    <div class="list-section">
+        <div class="list-header">All Appointments</div>
+        <div id="recordsList">
+            <p style='text-align:center; margin-top: 20px;'>Loading appointments...</p>
+        </div>
+    </div>
+
+    <div class="details-section">
+        <div id="placeholder" class="placeholder-text">
+            <i class="fas fa-paw"></i>
+            <p>Select an appointment to view details</p>
+        </div>
+        <div id="detailsCard">
+        </div>
+    </div>
+</div>
+
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
+    import {
+        getFirestore,
+        collection,
+        getDocs,
+        doc,
+        getDoc
+    } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
+
+    const firebaseConfig = {
+        apiKey: "AIzaSyAqXiNBycze3ZCefUEyGXN4LMK80FylnZg",
+        authDomain: "vet-clinic-db-3b9ef.firebaseapp.com",
+        projectId: "vet-clinic-db-3b9ef",
+        storageBucket: "vet-clinic-db-3b9ef.appspot.com",
+        messagingSenderId: "676038049976",
+        appId: "1:676038049976:web:8270527c975111a671744d"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    const recordsList = document.getElementById('recordsList');
+    const detailsCard = document.getElementById('detailsCard');
+    const placeholder = document.getElementById('placeholder');
+
+    // Load all records
+    async function loadAll() {
+        try {
+            const querySnap = await getDocs(collection(db, "appointments"));
+            if (querySnap.empty) {
+                recordsList.innerHTML = "<p style='text-align:center; color:red; margin-top:20px;'>No records found.</p>";
+                return;
+            }
+
+            recordsList.innerHTML = "";
+            querySnap.forEach(docSnap => {
+                const data = docSnap.data();
+                const card = document.createElement('div');
+                card.className = "record-card";
+                card.id = `card-${docSnap.id}`;
+                card.innerHTML = `
+                    <div class="record-title">${data.petName || 'N/A'}</div>
+                    <div class="record-sub"><i class="fas fa-user"></i> ${data.ownerName || 'N/A'}</div>
+                    <div class="record-sub"><i class="fas fa-calendar-alt"></i> ${data.appointmentDate || 'N/A'}</div>
+                `;
+                card.addEventListener('click', () => {
+                    // Remove active class from others
+                    document.querySelectorAll('.record-card').forEach(c => c.classList.remove('active'));
+                    card.classList.add('active');
+                    showDetails(docSnap.id);
+                });
+                recordsList.appendChild(card);
+            });
+
+        } catch (err) {
+            recordsList.innerHTML = `<p style='text-align:center; color:red;'>Error: ${err.message}</p>`;
+        }
+    }
+
+    // Show details of one record
+    async function showDetails(docId){
+        placeholder.style.display = 'none';
+        detailsCard.style.display = 'block';
+        detailsCard.innerHTML = "<p>Loading details...</p>";
+
+        try {
+            const docRef = doc(db, "appointments", docId);
+            const docSnap = await getDoc(docRef);
+
+            if (!docSnap.exists()) {
+                detailsCard.innerHTML = "<p style='color:red;'>Record not found</p>";
+                return;
+            }
+
+            const data = docSnap.data();
+            detailsCard.innerHTML = `
+                <h3 style="color: var(--pet-pink); margin-top: 0; border-bottom: 2px solid var(--pet-bg); padding-bottom: 10px;">
+                    <i class="fas fa-file-medical"></i> Appointment Details
+                </h3>
+                <div class="detail-grid">
+                    <div class="detail-item"><span class="detail-label">Pet Name</span><span class="detail-value highlight-value">${data.petName || 'N/A'}</span></div>
+                    <div class="detail-item"><span class="detail-label">Pet ID</span><span class="detail-value">${data.id || docId}</span></div>
+                    <div class="detail-item"><span class="detail-label">Owner Name</span><span class="detail-value">${data.ownerName || 'N/A'}</span></div>
+                    <div class="detail-item"><span class="detail-label">Pet Type</span><span class="detail-value">${data.petType || 'N/A'}</span></div>
+                    <div class="detail-item"><span class="detail-label">Age</span><span class="detail-value">${data.age || 'N/A'}</span></div>
+                    <div class="detail-item"><span class="detail-label">Disease/Reason</span><span class="detail-value">${data.disease || 'N/A'}</span></div>
+                    <div class="detail-item"><span class="detail-label">Date</span><span class="detail-value highlight-value">${data.appointmentDate || 'N/A'}</span></div>
+                    <div class="detail-item"><span class="detail-label">Time</span><span class="detail-value highlight-value">${data.appointmentTime || 'N/A'}</span></div>
+                    <div class="detail-item" style="grid-column: span 2;"><span class="detail-label">Record Created At</span><span class="detail-value" style="font-size: 13px;">${data.createdAt ? new Date(data.createdAt).toLocaleString() : 'N/A'}</span></div>
+                </div>
+                <div style="margin-top: 30px;">
+                    <button onclick="window.print()" style="background: var(--pet-pink); color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer;">
+                        <i class="fas fa-print"></i> Print Details
+                    </button>
+                </div>
+            `;
+        } catch(err) {
+            detailsCard.innerHTML = `<p style='color:red;'>Error: ${err.message}</p>`;
+        }
+    }
+
+    loadAll();
+
+</script>
+
+</body>
+</html>

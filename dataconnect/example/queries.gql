@@ -1,0 +1,29 @@
+mutation CreateNewUser($displayName: String!, $email: String) @auth(level: USER) {
+  user_insert(data: { displayName: $displayName, email: $email, id_expr: "uuidV4()", createdAt_expr: "request.time" })
+}
+
+query GetMyLists @auth(level: USER) {
+  lists(where: { userId: { eq_expr: "auth.uid" } }) {
+    id
+    name
+    description
+    public
+    createdAt
+    updatedAt
+  }
+}
+
+mutation CreateNewWatch($movieId: UUID!, $watchDate: Date!, $location: String) @auth(level: USER) {
+  watch_insert(data: { movieId: $movieId, userId_expr: "auth.uid", watchDate: $watchDate, createdAt_expr: "request.time", location: $location })
+}
+
+query GetPublicMovies @auth(level: PUBLIC, insecureReason: "This operation is safe to expose to the public") {
+  movies {
+    id
+    title
+    year
+    summary
+    genres
+    runtime
+  }
+}
