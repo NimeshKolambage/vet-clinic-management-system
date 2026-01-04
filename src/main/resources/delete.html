@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Delete Pet Record</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --pet-pink: #f84b6d;
+            --pet-bg: #fff0f5;
+            --input-border: #ccc;
+            --transition: 0.3s;
+        }
+
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background-color: :#f2f2f2;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            padding: 50px 20px;
+        }
+
+        .form-card {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            width: 400px;
+        }
+
+        .form-card h2 {
+            text-align: center;
+            color: var(--pet-pink);
+            margin-bottom: 20px;
+        }
+
+        .form-card label {
+            display: block;
+            margin: 10px 0 5px;
+            font-weight: 600;
+        }
+
+        .input-group {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 10px;
+        }
+
+        .form-card input {
+            flex: 1;
+            padding: 10px;
+            border-radius: 5px;
+            border: 1px solid var(--input-border);
+            outline: none;
+        }
+
+        .btn-search {
+            background: #555;
+            color: white;
+            border: none;
+            padding: 0 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .btn-search:hover { background: #333; }
+
+        #petDetails {
+            margin-top: 20px;
+            background-color: var(--pet-bg);
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid #ffcad4;
+            display: none;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+
+        .detail-item {
+            display: flex;
+            justify-content: space-between;
+            border-bottom: 1px solid #ffe0e6;
+            padding: 4px 0;
+        }
+        .back-icon {
+            font-size: 30px;
+            color: var(--pet-pink);
+            font-weight: 600;
+            margin-bottom: 15px;
+            cursor: pointer;
+            display: inline-block;
+            transition: var(--transition);
+            transform: rotate(180deg);
+
+
+        }
+
+        .back-icon:hover {
+            transform: translateX(-5px);
+            color: #d81b60;
+        }
+
+
+        .detail-item:last-child { border-bottom: none; }
+
+        .detail-label { font-weight: bold; color: #555; }
+        .detail-value { color: var(--pet-pink); font-weight: 600; }
+
+        .form-card button#deleteBtn {
+            width: 100%;
+            margin-top: 20px;
+            padding: 12px;
+            background-color: var(--pet-pink);
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .form-card button#deleteBtn:disabled {
+            background-color: #f8b0c1;
+            cursor: not-allowed;
+        }
+
+        .form-card button#deleteBtn:hover:not(:disabled) {
+            background-color: #e8385c;
+        }
+    </style>
+</head>
+<body>
+
+
+<div class="form-card">
+    <div class="back-icon" onclick="history.back()">
+        &#8592;
+    </div>
+    <h2>🐾Pet Record Details</h2>
+
+    <label for="did">Search by Pet ID</label>
+    <div class="input-group">
+        <input id="did" placeholder="e.g. PET-NIW8MD">
+        <button id="searchBtn" class="btn-search"><i class="fas fa-search"></i></button>
+    </div>
+
+    <div id="petDetails"></div>
+
+    <button id="deleteBtn" disabled><i class="fas fa-trash-alt"></i> Delete Record</button>
+</div>
+
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
+    import {
+        getFirestore,
+        collection,
+        query,
+        where,
+        getDocs,
+        deleteDoc,
+        doc
+    } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
+
+    const firebaseConfig = {
+        apiKey: "AIzaSyAqXiNBycze3ZCefUEyGXN4LMK80FylnZg",
+        authDomain: "vet-clinic-db-3b9ef.firebaseapp.com",
+        projectId: "vet-clinic-db-3b9ef",
+        storageBucket: "vet-clinic-db-3b9ef.appspot.com",
+        messagingSenderId: "676038049976",
+        appId: "1:676038049976:web:8270527c975111a671744d"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    const didInput = document.getElementById('did');
+    const searchBtn = document.getElementById('searchBtn');
+    const petDetailsDiv = document.getElementById('petDetails');
+    const deleteBtn = document.getElementById('deleteBtn');
+
+    let currentDocId = "";
+
+    searchBtn.addEventListener('click', async () => {
+        const searchId = didInput.value.trim();
+        if (!searchId) return;
+
+        petDetailsDiv.style.display = 'block';
+        petDetailsDiv.innerHTML = "<p style='text-align:center;'>Searching...</p>";
+        deleteBtn.disabled = true;
+
+        try {
+            const q = query(collection(db, "appointments"), where("id", "==", searchId));
+            const querySnapshot = await getDocs(q);
+
+            if (querySnapshot.empty) {
+                petDetailsDiv.innerHTML = '<p style="color:red; text-align:center;">No record found for this ID.</p>';
+                return;
+            }
+
+            querySnapshot.forEach((docSnap) => {
+                const pet = docSnap.data();
+                currentDocId = docSnap.id;
+
+                // සියලුම විස්තර පෙන්වීම
+                petDetailsDiv.innerHTML = `
+                    <div class="detail-item"><span class="detail-label">Pet Name:</span> <span class="detail-value">${pet.petName || 'N/A'}</span></div>
+                    <div class="detail-item"><span class="detail-label">Owner:</span> <span class="detail-value">${pet.ownerName || 'N/A'}</span></div>
+                    <div class="detail-item"><span class="detail-label">Type:</span> <span class="detail-value">${pet.petType || 'N/A'}</span></div>
+                    <div class="detail-item"><span class="detail-label">Age:</span> <span class="detail-value">${pet.age || 'N/A'}</span></div>
+                    <div class="detail-item"><span class="detail-label">Disease:</span> <span class="detail-value">${pet.disease || 'N/A'}</span></div>
+                    <div class="detail-item"><span class="detail-label">Date:</span> <span class="detail-value">${pet.appointmentDate || 'N/A'}</span></div>
+                    <div class="detail-item"><span class="detail-label">Time:</span> <span class="detail-value">${pet.appointmentTime || 'N/A'}</span></div>
+                    <div class="detail-item"><span class="detail-label">Created At:</span> <span class="detail-value">${pet.createdAt ? new Date(pet.createdAt).toLocaleDateString() : 'N/A'}</span></div>
+                `;
+                deleteBtn.disabled = false;
+            });
+
+        } catch (err) {
+            petDetailsDiv.innerHTML = `<p style="color:red;">Error: ${err.message}</p>`;
+        }
+    });
+
+    deleteBtn.addEventListener('click', async () => {
+        if (!currentDocId) return;
+
+        if (confirm("Do you really want to delete all information for this pet?")) {
+            try {
+                await deleteDoc(doc(db, "appointments", currentDocId));
+                alert("Record deleted successfully!");
+
+                didInput.value = '';
+                petDetailsDiv.innerHTML = '';
+                petDetailsDiv.style.display = 'none';
+                deleteBtn.disabled = true;
+                currentDocId = "";
+            } catch (err) {
+                alert("Delete failed: " + err.message);
+            }
+        }
+    });
+</script>
+
+</body>
+</html>

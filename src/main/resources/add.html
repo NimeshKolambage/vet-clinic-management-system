@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>PawBay Vet Clinic – Add Appointment</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <!-- Firebase -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
+        import { getFirestore, collection, addDoc } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyAqXiNBycze3ZCefUEyGXN4LMK80FylnZg",
+            authDomain: "vet-clinic-db-3b9ef.firebaseapp.com",
+            projectId: "vet-clinic-db-3b9ef",
+            storageBucket: "vet-clinic-db-3b9ef.appspot.com",
+            messagingSenderId: "676038049976",
+            appId: "1:676038049976:web:8270527c975111a671744d"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        window.addEventListener("DOMContentLoaded", () => {
+            const form = document.getElementById("form");
+
+            form.addEventListener("submit", async (e) => {
+                e.preventDefault();
+
+                try {
+                    // Firestore auto ID + PET-
+                    const tempDoc = await addDoc(collection(db, "appointments"), {});
+                    const petId = "PET-" + tempDoc.id.substring(0, 6).toUpperCase();
+
+                    const petData = {
+                        id: petId,
+                        petName: form.petName.value.trim(),
+                        ownerName: form.ownerName.value.trim(),
+                        petType: form.petType.value,
+                        disease: form.disease.value.trim(),
+                        age: Number(form.age.value),
+                        appointmentDate: form.appDate.value,
+                        appointmentTime: form.appTime.value,
+                        createdAt: new Date().toISOString()
+                    };
+
+                    // overwrite empty doc with real data
+                    await addDoc(collection(db, "appointments"), petData);
+
+                    alert("Appointment Added Successfully!\nID: " + petId);
+                    form.reset();
+
+                } catch (error) {
+                    console.error(error);
+                    alert("Something went wrong!");
+                }
+            });
+        });
+    </script>
+
+    <!-- CSS -->
+    <style>
+        :root {
+            --pet-pink: #f84b6d;
+            --pet-green: #8bc34a;
+            --text-dark: #212121;
+            --text-light: #757575;
+            --bg-light: #f9f9f9;
+            --transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Poppins', sans-serif;
+        }
+
+        body {
+            background-color:#f2f2f2;
+            color: var(--text-dark);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .card {
+            background: #fff;
+            padding: 25px;
+            width: 100%;
+            max-width: 420px;
+            border-radius: 14px;
+            box-shadow: 0 10px 30px rgba(0,0,0,.15);
+            position: relative;
+        }
+
+        .back-icon {
+            font-size: 25px;
+            color: var(--pet-pink);
+            font-weight: 600;
+            margin-bottom: 15px;
+            cursor: pointer;
+            display: inline-block;
+            transition: var(--transition);
+            transform: rotate(180deg);
+
+
+        }
+
+        .back-icon:hover {
+            transform: translateX(-5px);
+            color: #d81b60;
+        }
+
+        h2 {
+            text-align: center;
+            color: var(--pet-pink);
+            margin-bottom: 30px;
+        }
+
+        input, select, button {
+            width: 100%;
+            padding: 12px;
+            margin-bottom: 12px;
+            border-radius: 8px;
+            border: 1px solid #ccc;
+            font-size: 14px;
+            transition: var(--transition);
+        }
+
+        input:focus, select:focus {
+            border-color: var(--pet-pink);
+            outline: none;
+        }
+
+        button {
+            background: var(--pet-pink);
+            color: white;
+            font-weight: bold;
+            border: none;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        button:hover {
+            background: #d81b60;
+            transform: translateY(-2px);
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .card {
+                padding: 20px;
+            }
+
+            h2 {
+                font-size: 22px;
+            }
+
+            input, select, button {
+                font-size: 13px;
+                padding: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div class="card">
+
+    <div class="back-icon" onclick="history.back()">
+        &#8592;
+    </div>
+
+    <h2>🐾 Add Vet Appointment</h2>
+
+    <form id="form">
+        <input name="petName" placeholder="Pet Name" required>
+        <input name="ownerName" placeholder="Owner Name" required>
+
+        <select name="petType" required>
+            <option value="">Select Pet Type</option>
+            <option>Dog</option>
+            <option>Cat</option>
+            <option>Bird</option>
+        </select>
+
+        <input name="disease" placeholder="Disease">
+        <input name="age" type="number" min="0" placeholder="Pet Age" required>
+
+        <input name="appDate" type="date" required>
+        <input name="appTime" type="time" required>
+
+        <button type="submit">Add Appointment</button>
+    </form>
+</div>
+
+</body>
+</html>

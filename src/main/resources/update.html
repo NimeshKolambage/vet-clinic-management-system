@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>PawBay Vet Clinic – Update Appointment</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
+        // Added collection, query, where, and getDocs to find the custom ID field
+        import {
+            getFirestore,
+            doc,
+            updateDoc,
+            collection,
+            query,
+            where,
+            getDocs
+        } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyAqXiNBycze3ZCefUEyGXN4LMK80FylnZg",
+            authDomain: "vet-clinic-db-3b9ef.firebaseapp.com",
+            projectId: "vet-clinic-db-3b9ef",
+            storageBucket: "vet-clinic-db-3b9ef.appspot.com",
+            messagingSenderId: "676038049976",
+            appId: "1:676038049976:web:8270527c975111a671744d"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        window.addEventListener("DOMContentLoaded", () => {
+            const form = document.getElementById("form");
+            const idInput = document.getElementById("id");
+            const submitBtn = document.getElementById("submitBtn");
+
+            // This variable will store the actual Firestore Auto-ID (the random string)
+            let firestoreDocId = null;
+
+            // 1. Fetch data when ID is entered
+            idInput.addEventListener("change", async () => {
+                const searchId = idInput.value.trim().toUpperCase();
+                if(!searchId) return;
+
+                try {
+                    // We must query the collection to find where the FIELD 'id' matches the input
+                    const q = query(collection(db, "appointments"), where("id", "==", searchId));
+                    const querySnapshot = await getDocs(q);
+
+                    if(!querySnapshot.empty){
+                        // Get the first matching document (assuming IDs are unique)
+                        const docSnap = querySnapshot.docs[0];
+                        const data = docSnap.data();
+
+                        // Save the real Firestore document ID for the update process
+                        firestoreDocId = docSnap.id;
+
+                        // Fill form fields
+                        form.petName.value = data.petName || "";
+                        form.ownerName.value = data.ownerName || "";
+                        form.disease.value = data.disease || "";
+                        form.age.value = data.age || "";
+                        form.petType.value = data.petType || "";
+                        form.appDate.value = data.appointmentDate || "";
+                        form.appTime.value = data.appointmentTime || "";
+
+                        idInput.style.borderColor = "var(--pet-green)";
+                    } else {
+                        alert("No appointment found with ID: " + searchId);
+                        form.reset();
+                        firestoreDocId = null;
+                        idInput.style.borderColor = "#ccc";
+                    }
+                } catch (error) {
+                    console.error("Error fetching:", error);
+                    alert("Error searching for record.");
+                }
+            });
+
+            // 2. Update existing document
+            form.addEventListener("submit", async (e) => {
+                e.preventDefault();
+
+                if(!firestoreDocId) {
+                    alert("Please enter a valid Appointment ID first.");
+                    return;
+                }
+
+                submitBtn.disabled = true;
+                submitBtn.innerText = "Updating...";
+
+                try {
+                    // Use the specific Firestore Auto-ID we found during the search
+                    const docRef = doc(db, "appointments", firestoreDocId);
+
+                    await updateDoc(docRef, {
+                        petName: form.petName.value.trim(),
+                        ownerName: form.ownerName.value.trim(),
+                        petType: form.petType.value,
+                        disease: form.disease.value.trim(),
+                        age: Number(form.age.value),
+                        appointmentDate: form.appDate.value,
+                        appointmentTime: form.appTime.value,
+                        updatedAt: new Date().toISOString()
+                    });
+
+                    alert("Appointment updated successfully!");
+                } catch(err){
+                    console.error("Update Error:", err);
+                    alert("Failed to update. Check your connection.");
+                } finally {
+                    submitBtn.disabled = false;
+                    submitBtn.innerText = "Update Appointment";
+                }
+            });
+        });
+    </script>
+
+    <style>
+        :root {
+            --pet-pink: #f84b6d;
+            --pet-green: #8bc34a;
+            --text-dark: #212121;
+            --text-light: #757575;
+            --transition: all 0.3s cubic-bezier(0.25,0.8,0.25,1);
+        }
+
+        * {margin:0;padding:0;box-sizing:border-box;font-family:'Poppins', sans-serif;}
+
+        body {
+            background:#f9f9f9;
+            color:var(--text-dark);
+            min-height:100vh;
+            display:flex;
+            justify-content:center;
+            align-items:center;
+            padding:20px;
+        }
+
+        .card {
+            background:#fff;
+            padding:25px;
+            width:100%;
+            max-width:420px;
+            border-radius:14px;
+            box-shadow:0 10px 30px rgba(0,0,0,.1);
+            position:relative;
+        }
+        .back-icon {
+            font-size: 25px;
+            color: var(--pet-pink);
+            font-weight: 600;
+            margin-bottom: 15px;
+            cursor: pointer;
+            display: inline-block;
+            transition: var(--transition);
+            transform: rotate(180deg);
+
+
+        }
+
+        .back-icon:hover { transform:translateX(-5px); }
+
+        h2 { text-align:center; color:var(--pet-pink); margin-bottom:20px; font-weight: 600; }
+
+        label { font-size: 12px; color: var(--text-light); margin-left: 5px; }
+
+        input, select, button {
+            width:100%;
+            padding:12px;
+            margin-bottom:15px;
+            border-radius:8px;
+            border:1px solid #ddd;
+            font-size:14px;
+            transition:var(--transition);
+        }
+
+        input:focus, select:focus { border-color:var(--pet-pink); outline:none; background: #fffcfd; }
+
+        button {
+            background:var(--pet-pink);
+            color:white;
+            font-weight:bold;
+            border:none;
+            cursor:pointer;
+            margin-top: 10px;
+        }
+
+        button:hover { background:#d81b60; transform:translateY(-1px); }
+        button:disabled { background: #ccc; cursor: not-allowed; }
+
+        @media(max-width:480px){
+            .card{padding:20px;}
+        }
+    </style>
+</head>
+
+<body>
+<div class="card">
+    <div class="back-icon" onclick="history.back()">
+        &#8592;
+    </div>
+
+    <h2>🐾 Update Appointment</h2>
+
+    <form id="form">
+        <label>Enter ID & press TAB</label>
+        <input id="id" placeholder="Appointment ID (PET-XXXXXX)" required>
+
+        <input name="petName" placeholder="Pet Name" required>
+        <input name="ownerName" placeholder="Owner Name" required>
+
+        <select name="petType" required>
+            <option value="">Select Pet Type</option>
+            <option value="Dog">Dog</option>
+            <option value="Cat">Cat</option>
+            <option value="Bird">Bird</option>
+        </select>
+
+        <input name="disease" placeholder="Disease">
+        <input name="age" type="number" min="0" placeholder="Pet Age" required>
+
+        <input name="appDate" type="date" required>
+        <input name="appTime" type="time" required>
+
+        <button type="submit" id="submitBtn">Update Appointment</button>
+    </form>
+</div>
+</body>
+</html>
