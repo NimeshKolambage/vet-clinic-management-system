@@ -1,10 +1,104 @@
 <!DOCTYPE html>
-<html lang="en">
+<html xmlns:th="http://www.thymeleaf.org">
 <head>
-  <meta charset="UTF-8">
-  <title>$Title$</title>
+    <meta charset="UTF-8">
+    <title>Pawbay | Doctor Console</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css">
+    <style>
+        body { background-color: #f4f7f6; }
+        .sidebar {
+            height: 100vh;
+            background: white;
+            border-right: 1px solid #dee2e6;
+            overflow-y: auto;
+        }
+        .queue-card {
+            border-left: 5px solid #007bff;
+            transition: 0.3s;
+        }
+        .queue-card.emergency {
+            border-left: 5px solid #dc3545;
+            background-color: #fff5f5;
+        }
+        .active-patient-card {
+            border-top: 5px solid #28a745;
+        }
+        .token-no {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: #007bff;
+        }
+    </style>
 </head>
 <body>
-$END$
+
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-3 sidebar p-3">
+            <h4 class="mb-4">Today's Queue</h4>
+            <div th:if="${#lists.isEmpty(queueList)}" class="text-center mt-5">
+                <p class="text-muted">No appointments yet.</p>
+            </div>
+
+            <div th:each="pet, iter : ${queueList}"
+                 class="card mb-3 shadow-sm queue-card"
+                 th:classappend="${pet.disease == 'Emergency' ? 'emergency' : ''}">
+                <div class="card-body p-2">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span class="token-no" th:text="${iter.index + 1}">1</span>
+                        <span class="badge"
+                              th:classappend="${pet.disease == 'Emergency' ? 'badge-danger' : 'badge-info'}"
+                              th:text="${pet.disease}">Normal</span>
+                    </div>
+                    <h6 class="mt-2 mb-0" th:text="${pet.petName}">Pet Name</h6>
+                    <small class="text-muted" th:text="'Owner: ' + ${pet.ownerName}">Owner</small>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-9 p-5">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2 class="text-primary">Pawbay Patient Insights</h2>
+                <a href="/add.html" class="btn btn-warning shadow-sm font-weight-bold">+ Add New Pet</a>
+            </div>
+
+            <hr>
+
+            <div th:if="${currentPet != null}">
+                <div class="card shadow active-patient-card">
+                    <div class="card-header bg-white font-weight-bold text-success">
+                        Currently Treating
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <h3>Pet Name: <span class="text-dark" th:text="${currentPet.petName}">Rex</span></h3>
+                                <p><strong>Pet Type:</strong> <span th:text="${currentPet.petType}">Dog</span></p>
+                                <p><strong>Age:</strong> <span th:text="${currentPet.age}">3</span> Years</p>
+                            </div>
+                            <div class="col-md-6">
+                                <p><strong>Owner:</strong> <span th:text="${currentPet.ownerName}">John Doe</span></p>
+                                <p><strong>Disease/Status:</strong> <span class="badge badge-warning" th:text="${currentPet.disease}">Injury</span></p>
+                                <p><strong>Time:</strong> <span th:text="${currentPet.appointmentTime}">10:30 AM</span></p>
+                            </div>
+                        </div>
+
+                        <div class="mt-4 border-top pt-3 text-right">
+                            <form th:action="@{/pets/complete-treatment}" method="post">
+                                <button type="submit" class="btn btn-success btn-lg px-5 shadow">Complete & Next Patient</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div th:unless="${currentPet != null}" class="text-center py-5">
+                <img src="https://cdn-icons-png.flaticon.com/512/1053/1053091.png" width="100" class="mb-3 opacity-50">
+                <h4 class="text-muted">All caught up! No pending patients.</h4>
+            </div>
+        </div>
+    </div>
+</div>
+
 </body>
 </html>

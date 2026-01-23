@@ -10,7 +10,7 @@ public class Pet {
     private String petType;
     private String appointmentDate;
     private String appointmentTime;
-
+    public Pet next;
     public Pet() {}
 
     public Pet(String id, String petName, String ownerName, String disease,
